@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Zoom Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+  <style>
+    video {
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h2>Camera Zoom Demo</h2>
+  <label>
+    Camera:
+    <select id="select-camera"></select>
+  </label>
+  <label>
+    Resolution:
+    <select id="select-resolution">
+      <option value="640x480">640x480</option>
+      <option value="1280x720">1280x720</option>
+      <option value="1920x1080" selected>1920x1080</option>
+      <option value="3840x2160">3840x2160</option>
+    </select>
+  </label>
+  <button onclick="startCamera();">Start Camera</button>
+  <br/>
+  <video id="video" muted autoplay="autoplay" playsinline="playsinline" webkit-playsinline></video>
+  <script type="text/javascript">
+    let cameras = [];
+
+    window.onload = async function(){
+      await requestCameraPermission();
+      await listCameras();
+    }
+    async function listCameras(){
+      let cameraSelect = document.getElementById("select-camera");
+      let allDevices = await navigator.mediaDevices.enumerateDevices();
+      for (let i = 0; i < allDevices.length; i++){
+        let device = allDevices[i];
+        if (device.kind == 'videoinput'){
+          cameras.push(device);
+          cameraSelect.appendChild(new Option(device.label,device.deviceId));
+        }
+      }
+    }
+    async function requestCameraPermission() {
+      try {
+        const constraints = {video: true, audio: false};
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        closeStream(stream);
+      } catch (error) {
+        console.log(error);
+        throw error;
+      }
+    }
+
+    function closeStream(stream){
+      if (stream) {
+        const tracks = stream.getTracks();
+        for (let i=0;i<tracks.length;i++) {
+          const track = tracks[i];
+          track.stop();  // stop the opened tracks
+        }
+      }
+    }
+
+    async function startCamera(){
+      let selectedCamera = cameras[document.getElementById("select-camera").selectedIndex];
+      closeStream(document.getElementById("video").srcObject);
+      let selectedResolution = document.getElementById("select-resolution").selectedOptions[0].value;
+      let width = parseInt(selectedResolution.split("x")[0]);
+      let height = parseInt(selectedResolution.split("x")[1]);
+      const videoConstraints = {video: {deviceId: selectedCamera}, audio: false};
+      const cameraStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+      document.getElementById("video").srcObject = cameraStream;
+    }
+  </script>
+</body>
+</html>
