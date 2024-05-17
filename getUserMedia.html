@@ -24,16 +24,55 @@
       <option value="3840x2160">3840x2160</option>
     </select>
   </label>
+  <label>
+    <input type="range" min="0" max="2" id="zoomInput" value="0" onchange="setZoom();">
+    <span id="zoomValue">0</span>
+  </label>
   <button onclick="startCamera();">Start Camera</button>
   <br/>
   <video id="video" muted autoplay="autoplay" playsinline="playsinline" webkit-playsinline></video>
   <script type="text/javascript">
     let cameras = [];
-
+    let track;
     window.onload = async function(){
       await requestCameraPermission();
       await listCameras();
+      checkBrowserCapabilities();
     }
+
+    function checkBrowserCapabilities(){
+      if (navigator.mediaDevices.getSupportedConstraints().zoom) {
+        console.log("Browser supports zoom");
+      }else{
+        alert("The browser does not support zoom.");
+      }
+    }
+
+    function checkCameraCapabilities(){
+      const video = document.querySelector('video');
+      const videoTracks = video.srcObject.getVideoTracks();
+      track = videoTracks[0];
+      let capabilities = track.getCapabilities();
+      console.log(capabilities);
+      if ('zoom' in capabilities) {
+        let min = capabilities["zoom"]["min"];
+        let max = capabilities["zoom"]["max"];
+        document.getElementById("zoomInput").setAttribute("min",min);
+        document.getElementById("zoomInput").setAttribute("max",max);
+        document.getElementById("zoomInput").value  = 0;
+        document.getElementById("zoomValue").innerText = 0;
+      }else{
+        alert("This camera does not support zoom");
+      }
+    }
+    
+    async function setZoom(){
+      let expectedZoom = document.getElementById("zoomInput").value;
+      document.getElementById("zoomValue").innerText = expectedZoom;
+      const constraints = {advanced: [{zoom: expectedZoom}]};
+      await track.applyConstraints(constraints);
+    }
+
     async function listCameras(){
       let cameraSelect = document.getElementById("select-camera");
       let allDevices = await navigator.mediaDevices.enumerateDevices();
@@ -72,9 +111,18 @@
       let selectedResolution = document.getElementById("select-resolution").selectedOptions[0].value;
       let width = parseInt(selectedResolution.split("x")[0]);
       let height = parseInt(selectedResolution.split("x")[1]);
-      const videoConstraints = {video: {deviceId: selectedCamera}, audio: false};
-      const cameraStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
-      document.getElementById("video").srcObject = cameraStream;
+      
+      const videoConstraints = {
+        video: {deviceId: selectedCamera.deviceId, zoom: true}, 
+        audio: false
+      };
+      try {
+        const cameraStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+        document.getElementById("video").srcObject = cameraStream;
+        checkCameraCapabilities();
+      } catch (error) {
+        alert(error);
+      }
     }
   </script>
 </body>
