@@ -111,7 +111,7 @@
       let height = parseInt(selectedResolution.split("x")[1]);
       
       const videoConstraints = {
-        video: {deviceId: selectedCamera.deviceId, zoom: true}, 
+        video: {width:width, height:height, deviceId: selectedCamera.deviceId, zoom: true}, 
         audio: false
       };
       try {
